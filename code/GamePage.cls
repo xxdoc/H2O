@@ -16,7 +16,8 @@ Attribute VB_Exposed = False
     Dim Page As GPage
     Dim Map() As Integer
     Dim PX As Single, PY As Single
-    
+    Dim XRemain As Single, YRemain As Single
+    Dim Orders() As Integer
 '======================================
 Public Sub CreateBlockCave(Block As H2OType, Depth As Long, Count As Long, Base As H2OType)
     Dim SX As Long, SY As Long, SW As Long, SH As Long
@@ -32,9 +33,9 @@ Public Sub CreateBlockCave(Block As H2OType, Depth As Long, Count As Long, Base 
         
         'Fill
         For X = SX To SX + SW
-            For y = SY To SY + SH
-                If Map(X, y) = Base Then
-                    Map(X, y) = Block
+            For Y = SY To SY + SH
+                If Map(X, Y) = Base Then
+                    Map(X, Y) = Block
                 End If
             Next
         Next
@@ -45,14 +46,14 @@ Public Sub CreateMap()
     
     'Create Blocks
     Call CreateBlockCave(H2ODirt, 4, 800000, 0)
-    Call CreateBlockCave(H2OGrass, 4, 120000, H2ODirt)
-    Call CreateBlockCave(H2OStone, 4, 60000, H2ODirt)
+    Call CreateBlockCave(H2OGrass, 4, 600000, H2ODirt)
+    Call CreateBlockCave(H2OStone, 4, 100000, H2ODirt)
     Call CreateBlockCave(H2OTree, 4, 150000, H2OGrass)
     
     'Fill
     For X = 0 To UBound(Map, 1)
-        For y = 0 To UBound(Map, 2)
-            If Map(X, y) = 0 Then Map(X, y) = H2OType.H2OWater
+        For Y = 0 To UBound(Map, 2)
+            If Map(X, Y) = 0 Then Map(X, Y) = H2OType.H2OWater
         Next
     Next
     
@@ -64,24 +65,45 @@ Public Sub Update()
     Page.Clear '清空画布
 
     Dim DrawW As Long, DrawH As Long, DX As Long, DY As Long
+    Dim MapW As Long, MapH As Long
+    Dim X As Long, Y As Long
+    
+    MapW = UBound(Map, 1)
+    MapH = UBound(Map, 2)
     
     DrawW = Round(GW / 32)
     DrawH = Round(GH / 32)
     
-    For X = PX - DrawW / 2 To PX + DrawW / 2
-        For y = PY - DrawH / 2 To PY + DrawH / 2
-            DX = GW / 2 - (PX - X) * 32
-            DY = GH / 2 - (PY - y) * 32
-            If Map(X, y) <> 0 Then
-                Page.DrawImage Map(X, y) * 2 + 1, DX, DY, alpha:=1, pos:=posOnCenter
+    For X = PX - DrawW / 2 - 1 To PX + DrawW / 2 + 1
+        For Y = PY - DrawH / 2 - 1 To PY + DrawH / 2 + 1
+            If X >= 0 And Y >= 0 And X <= MapW And Y <= MapH And Map(X, Y) <> H2OType.H2OWater Then
+                DX = GW / 2 - (PX - X) * 32
+                DY = GH / 2 - (PY - Y) * 32
+                If Map(X, Y) <> 0 Then
+                    Page.DrawImage Map(X, Y) * 2 + 1, DX, DY, pos:=posOnCenter
+                End If
             End If
         Next
     Next
     
-    'PX = PX - 0.1
+    If XRemain <> 0 Then
+        PX = PX + IIf(XRemain > 0, 0.1, -0.1)
+        XRemain = XRemain + IIf(XRemain > 0, -0.1, 0.1)
+        If Abs(XRemain) < 0.001 Then XRemain = 0: PX = Round(PX)
+    End If
+    If YRemain <> 0 Then
+        PY = PY + IIf(YRemain > 0, 0.1, -0.1)
+        YRemain = YRemain + IIf(YRemain > 0, -0.1, 0.1)
+        If Abs(YRemain) < 0.001 Then YRemain = 0: PY = Round(PY)
+    End If
     
-    Page.Paint 1, GW / 2, GH / 2, 32, 32, argb(180, 255, 255, 255), pos:=posOnCenter
-    Page.Paint 1, GW / 2, GH / 2, 32, 32, argb(180, 0, 0, 0), style:=1, pos:=posOnCenter
+    If IsKeyPress(VK_LEFT) And XRemain = 0 Then XRemain = -1
+    If IsKeyPress(VK_RIGHT) And XRemain = 0 Then XRemain = 1
+    If IsKeyPress(VK_UP) And YRemain = 0 Then YRemain = -1
+    If IsKeyPress(VK_DOWN) And YRemain = 0 Then YRemain = 1
+    
+    Page.Paint 0, GW / 2, GH / 2, 32, 32, argb(180, 255, 255, 255), pos:=posOnCenter
+    Page.Paint 0, GW / 2, GH / 2, 32, 32, argb(100, 0, 0, 0), style:=1, pos:=posOnCenter
 End Sub
 Public Sub Wheel(Direction As Integer, Depth As Single)
     '鼠标滚轮事件
@@ -116,6 +138,13 @@ Private Sub Class_Initialize()
     ECore.Add Page, "GamePage"
     
     Call CreateMap
+    
+    ReDim Orders(4)
+    Orders(0) = H2OType.H2OWater
+    Orders(1) = H2OType.H2ODirt
+    Orders(2) = H2OType.H2OStone
+    Orders(3) = H2OType.H2OGrass
+    Orders(4) = H2OType.H2OTree
     '===============================================
     '   如果需要添加动画，请放置在此处
     
