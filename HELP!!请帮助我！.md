@@ -29,7 +29,7 @@ Otherwise, I advice that you can leave some information on your personal page so
 
 **In the end, I sincerely hope you could help me.**
 
-Can you remember this repository: https://github.com/xxdoc/Emerald
+Do you remember this repository: https://github.com/xxdoc/Emerald
 
 This repository was "forked" from mine by you. But, this repository will attend a very important competition, could you help me to delete it?
 
